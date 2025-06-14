@@ -48,7 +48,8 @@ class FilterService {
             'LIKE': (a, b) => {
                 if (typeof a !== 'string' || typeof b !== 'string') return false;
                 const pattern = b.replace(/%/g, '.*').replace(/_/g, '.');
-                return new RegExp(`^${pattern}$`, 'i').test(a);
+                const regex = new RegExp(`^${pattern}$`, 'i');
+                return regex.test(a);
             },
             'NOT LIKE': (a, b) => !this.operators.LIKE(a, b),
             'CONTAINS': (a, b) => {
@@ -59,7 +60,8 @@ class FilterService {
             'REGEX': (a, b) => {
                 if (typeof a !== 'string' || typeof b !== 'string') return false;
                 try {
-                    return new RegExp(b, 'i').test(a);
+                    const regex = new RegExp(b, 'i');
+                    return regex.test(a);
                 } catch (e) {
                     return false;
                 }
@@ -189,7 +191,6 @@ class FilterService {
             const stream = fs.createReadStream(filePath, { encoding: 'utf8' })
                 .pipe(JSONStream.parse('*'))
                 .on('data', (item) => {
-                    let matches = true;
                     let currentResult = true;
                     
                     for (let i = 0; i < conditions.length; i++) {
