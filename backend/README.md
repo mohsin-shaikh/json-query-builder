@@ -42,6 +42,7 @@ The server will start on http://localhost:3000
 - `npm start` - Start the production server
 - `npm run dev` - Start the development server with hot reload
 - `npm test` - Run tests (not configured yet)
+- `npm run generate-data` - Generate sample JSON data for testing
 
 ## API Endpoints
 
@@ -102,6 +103,7 @@ The filter API allows you to query JSON data using a simple query language.
 
 #### Query Examples
 
+##### Basic Queries
 ```javascript
 // Simple comparison
 "customer.name = 'John'"
@@ -122,11 +124,72 @@ The filter API allows you to query JSON data using a simple query language.
 // List operations
 "customer.status IN ['active', 'pending']"
 "customer.status NOT IN ['inactive', 'blocked']"
-
-// Complex queries
-"customer.name LIKE 'John%' AND customer.status IN ['active', 'pending']"
-"(customer.age > 25 OR customer.status = 'active') AND customer.createdAt < '2024-01-01'"
 ```
+
+##### Complex Query Examples
+
+1. **User Profile Query**
+```json
+{
+    "query": "age > 30 AND preferences.theme = 'dark' AND metrics.rating > 4.5 AND subscription.plan IN ['premium', 'enterprise'] AND tags IN ['technology', 'science']",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds premium users who are over 30, use dark theme, have high ratings, and are interested in technology/science.
+
+2. **Location and Activity Based Query**
+```json
+{
+    "query": "address.country = 'United States' AND metrics.views > 10000 AND metrics.likes > 1000 AND lastLogin.device = 'desktop' AND preferences.notifications.email = true",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds active US users with high engagement who use desktop and have email notifications enabled.
+
+3. **Time and Status Based Query**
+```json
+{
+    "query": "createdAt > '2023-01-01' AND status = 'active' AND metrics.comments > 100 AND preferences.privacy.profileVisibility = 'public' AND language IN ['English', 'Spanish']",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds recently created active accounts with high engagement, public profiles, and English/Spanish language preference.
+
+4. **Social Media Query**
+```json
+{
+    "query": "socialProfiles.twitter != '' AND socialProfiles.github != '' AND bio CONTAINS 'developer' AND tags IN ['technology', 'programming'] AND metrics.shares > 500",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds developers with both Twitter and GitHub profiles who are active in the tech community.
+
+5. **Most Complex Query**
+```json
+{
+    "query": "(age > 25 AND age < 40) AND (metrics.rating > 4.0 OR metrics.views > 50000) AND (subscription.plan = 'premium' OR subscription.plan = 'enterprise') AND (preferences.theme = 'dark' OR preferences.theme = 'system') AND (tags IN ['technology', 'science'] OR bio CONTAINS 'research') AND (address.country = 'United States' OR address.country = 'Canada') AND (createdAt > '2023-01-01' AND status = 'active')",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Complex query combining multiple conditions with nested AND/OR operations.
+
+6. **Engagement and Privacy Query**
+```json
+{
+    "query": "metrics.likes > 1000 AND metrics.shares > 100 AND metrics.comments > 50 AND preferences.privacy.showEmail = false AND preferences.privacy.showPhone = false AND preferences.privacy.profileVisibility = 'private' AND lastLogin.timestamp > '2024-01-01'",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds highly engaged but privacy-conscious users who have logged in recently.
+
+7. **Language and Content Query**
+```json
+{
+    "query": "(language = 'Sindhi' OR language = 'Uyghur') AND (bio LIKE '%technology%' OR bio LIKE '%science%') AND metrics.views > 5000 AND tags IN ['technology', 'science', 'education']",
+    "filePath": "backend/data/large-dataset.json"
+}
+```
+Finds users who speak Sindhi or Uyghur and are interested in technology/science.
 
 #### Notes
 
