@@ -7,12 +7,42 @@ class FilterService {
     constructor() {
         this.operators = {
             // Comparison operators
-            '=': (a, b) => a === b,
-            '!=': (a, b) => a !== b,
-            '>': (a, b) => a > b,
-            '<': (a, b) => a < b,
-            '>=': (a, b) => a >= b,
-            '<=': (a, b) => a <= b,
+            '=': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() === b.getTime();
+                }
+                return a === b;
+            },
+            '!=': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() !== b.getTime();
+                }
+                return a !== b;
+            },
+            '>': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() > b.getTime();
+                }
+                return a > b;
+            },
+            '<': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() < b.getTime();
+                }
+                return a < b;
+            },
+            '>=': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() >= b.getTime();
+                }
+                return a >= b;
+            },
+            '<=': (a, b) => {
+                if (a instanceof Date && b instanceof Date) {
+                    return a.getTime() <= b.getTime();
+                }
+                return a <= b;
+            },
             
             // String operators
             'LIKE': (a, b) => {
@@ -114,7 +144,13 @@ class FilterService {
 
     evaluateCondition(item, condition) {
         const { left, operator, right } = condition;
-        const leftValue = _.get(item, left);
+        let leftValue = _.get(item, left);
+        
+        // Convert ISO date strings to Date objects
+        if (typeof leftValue === 'string' && !Number.isNaN(new Date(leftValue).getTime())) {
+            leftValue = new Date(leftValue);
+        }
+        
         return this.operators[operator](leftValue, right);
     }
 
