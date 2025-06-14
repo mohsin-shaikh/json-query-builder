@@ -119,35 +119,43 @@ class FilterService {
     }
 
     parseQuery(query) {
-        const conditions = [];
-        let currentGroup = [];
-        let groupOperator = 'AND';
-        
-        // Split by AND/OR while preserving parentheses
+        // First, split by logical operators while preserving parentheses
         const parts = query.split(/\s+(AND|OR)\s+/);
-        
+        const conditions = [];
+        let currentOperator = 'AND';
+
         for (let i = 0; i < parts.length; i++) {
             const part = parts[i].trim();
             
             if (part === 'AND' || part === 'OR') {
-                groupOperator = part;
+                currentOperator = part;
                 continue;
             }
-            
+
             // Remove parentheses
             const cleanPart = part.replace(/[()]/g, '');
             const condition = this.parseCondition(cleanPart);
-            currentGroup.push(condition);
             
-            if (i === parts.length - 1 || parts[i + 1] === 'AND' || parts[i + 1] === 'OR') {
+            if (i === 0) {
+                // First condition
                 conditions.push({
-                    conditions: currentGroup,
-                    operator: groupOperator
+                    conditions: [condition],
+                    operator: currentOperator
                 });
-                currentGroup = [];
+            } else {
+                // Add to existing group if same operator, create new group if different
+                const lastGroup = conditions[conditions.length - 1];
+                if (lastGroup.operator === currentOperator) {
+                    lastGroup.conditions.push(condition);
+                } else {
+                    conditions.push({
+                        conditions: [condition],
+                        operator: currentOperator
+                    });
+                }
             }
         }
-        
+
         return conditions;
     }
 
@@ -162,15 +170,22 @@ class FilterService {
                     let matches = true;
                     
                     for (const group of conditions) {
-                        let groupResult = group.conditions[0] ? 
-                            this.evaluateCondition(item, group.conditions[0]) : true;
-                            
-                        for (let i = 1; i < group.conditions.length; i++) {
-                            const conditionResult = this.evaluateCondition(item, group.conditions[i]);
-                            groupResult = this.operators[group.operator](groupResult, conditionResult);
+                        let groupResult = false;
+                        
+                        // For OR groups, we need at least one condition to be true
+                        if (group.operator === 'OR') {
+                            groupResult = group.conditions.some(condition => 
+                                this.evaluateCondition(item, condition)
+                            );
+                        } else {
+                            // For AND groups, all conditions must be true
+                            groupResult = group.conditions.every(condition => 
+                                this.evaluateCondition(item, condition)
+                            );
                         }
                         
-                        matches = this.operators.AND(matches, groupResult);
+                        // Combine with previous results using AND
+                        matches = matches && groupResult;
                     }
                     
                     if (matches) {
