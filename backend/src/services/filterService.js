@@ -119,7 +119,7 @@ class FilterService {
     }
 
     parseQuery(query) {
-        // First, split by logical operators while preserving parentheses
+        // Split the query into individual conditions and operators
         const parts = query.split(/\s+(AND|OR)\s+/);
         const conditions = [];
         let currentOperator = 'AND';
@@ -136,24 +136,10 @@ class FilterService {
             const cleanPart = part.replace(/[()]/g, '');
             const condition = this.parseCondition(cleanPart);
             
-            if (i === 0) {
-                // First condition
-                conditions.push({
-                    conditions: [condition],
-                    operator: currentOperator
-                });
-            } else {
-                // Add to existing group if same operator, create new group if different
-                const lastGroup = conditions[conditions.length - 1];
-                if (lastGroup.operator === currentOperator) {
-                    lastGroup.conditions.push(condition);
-                } else {
-                    conditions.push({
-                        conditions: [condition],
-                        operator: currentOperator
-                    });
-                }
-            }
+            conditions.push({
+                condition,
+                operator: currentOperator
+            });
         }
 
         return conditions;
@@ -168,27 +154,24 @@ class FilterService {
                 .pipe(JSONStream.parse('*'))
                 .on('data', (item) => {
                     let matches = true;
+                    let currentResult = true;
                     
-                    for (const group of conditions) {
-                        let groupResult = false;
+                    for (let i = 0; i < conditions.length; i++) {
+                        const { condition, operator } = conditions[i];
+                        const conditionResult = this.evaluateCondition(item, condition);
                         
-                        // For OR groups, we need at least one condition to be true
-                        if (group.operator === 'OR') {
-                            groupResult = group.conditions.some(condition => 
-                                this.evaluateCondition(item, condition)
-                            );
+                        if (i === 0) {
+                            currentResult = conditionResult;
                         } else {
-                            // For AND groups, all conditions must be true
-                            groupResult = group.conditions.every(condition => 
-                                this.evaluateCondition(item, condition)
-                            );
+                            if (operator === 'OR') {
+                                currentResult = currentResult || conditionResult;
+                            } else {
+                                currentResult = currentResult && conditionResult;
+                            }
                         }
-                        
-                        // Combine with previous results using AND
-                        matches = matches && groupResult;
                     }
                     
-                    if (matches) {
+                    if (currentResult) {
                         results.push(item);
                     }
                 })

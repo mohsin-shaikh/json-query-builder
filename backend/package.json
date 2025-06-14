@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "generate-data": "node src/scripts/generateData.js"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +18,8 @@
     "dotenv": "^16.3.1",
     "morgan": "^1.10.0",
     "lodash": "^4.17.21",
-    "JSONStream": "^1.3.5"
+    "JSONStream": "^1.3.5",
+    "@faker-js/faker": "^8.4.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
