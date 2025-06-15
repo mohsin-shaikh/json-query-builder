@@ -1,7 +1,14 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table'
 import { Textarea } from './components/ui/textarea'
 import { Button } from './components/ui/button'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+} from '@tanstack/react-table'
 
 interface DataItem {
   id: string
@@ -62,7 +69,7 @@ interface DataItem {
 }
 
 // Helper function to format cell value
-const formatCellValue = (value: string | number | boolean | null | undefined | object | any[]): string => {
+const formatCellValue = (value: string | number | boolean | null | undefined | object | unknown[]): string => {
   if (value === null || value === undefined) return '-'
   if (typeof value === 'object') {
     if (Array.isArray(value)) {
@@ -80,6 +87,33 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tableColumns, setTableColumns] = useState<string[]>([])
+
+  const columnHelper = createColumnHelper<DataItem>()
+
+  // Create columns dynamically
+  const columns = useMemo(() => {
+    if (tableColumns.length === 0) return []
+    
+    return tableColumns.map(column => 
+      columnHelper.accessor(column as keyof DataItem, {
+        header: () => column.replace(/([A-Z])/g, ' $1').trim(),
+        cell: info => formatCellValue(info.getValue()),
+      })
+    )
+  }, [tableColumns, columnHelper])
+
+  // Initialize table
+  const table = useReactTable({
+    data: filteredData,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+      pagination: {
+        pageSize: 10,
+      },
+    },
+  })
 
   // Extract root level fields from the first data item
   useEffect(() => {
@@ -190,26 +224,90 @@ function App() {
           <div className="overflow-x-auto">
             <Table className="w-full">
               <TableHeader>
-                <TableRow>
-                  {tableColumns.map((column) => (
-                    <TableHead key={column} className="capitalize">
-                      {column.replace(/([A-Z])/g, ' $1').trim()}
-                    </TableHead>
-                  ))}
-                </TableRow>
+                {table.getHeaderGroups().map(headerGroup => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <TableHead key={header.id} className="capitalize">
+                        {flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
-                {filteredData.map((item) => (
-                  <TableRow key={item.id}>
-                    {tableColumns.map((column) => (
-                      <TableCell key={`${item.id}-${column}`}>
-                        {formatCellValue(item[column as keyof DataItem])}
+                {table.getRowModel().rows.map(row => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </div>
+
+          {/* Pagination Controls */}
+          <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={() => table.setPageIndex(0)}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {'<<'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => table.previousPage()}
+                disabled={!table.getCanPreviousPage()}
+              >
+                {'<'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => table.nextPage()}
+                disabled={!table.getCanNextPage()}
+              >
+                {'>'}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                disabled={!table.getCanNextPage()}
+              >
+                {'>>'}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1">
+                <div>Page</div>
+                <strong>
+                  {table.getState().pagination.pageIndex + 1} of{' '}
+                  {table.getPageCount()}
+                </strong>
+              </span>
+              <select
+                value={table.getState().pagination.pageSize}
+                onChange={e => {
+                  table.setPageSize(Number(e.target.value))
+                }}
+                className="border rounded p-1"
+              >
+                {[10, 20, 30, 40, 50].map(pageSize => (
+                  <option key={pageSize} value={pageSize}>
+                    Show {pageSize}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
       </div>
