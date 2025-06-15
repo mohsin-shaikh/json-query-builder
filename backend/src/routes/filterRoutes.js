@@ -5,11 +5,11 @@ const path = require('node:path');
 
 router.post('/filter', async (req, res) => {
     try {
-        const { query, filePath } = req.body;
+        const { query = '', filePath } = req.body;
         
-        if (!query || !filePath) {
+        if (!filePath) {
             return res.status(400).json({
-                error: 'Missing required parameters: query and filePath'
+                error: 'Missing required parameter: filePath'
             });
         }
 
