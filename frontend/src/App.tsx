@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './components/ui/table'
 import { Textarea } from './components/ui/textarea'
 import { Button } from './components/ui/button'
@@ -79,6 +79,143 @@ const formatCellValue = (value: string | number | boolean | null | undefined | o
   }
   return String(value)
 }
+
+// Memoized QueryInput component
+const QueryInput = memo(({ 
+  query, 
+  onQueryChange, 
+  onApplyFilter, 
+  loading, 
+  filterTime 
+}: { 
+  query: string
+  onQueryChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onApplyFilter: () => void
+  loading: boolean
+  filterTime: number | null
+}) => (
+  <div>
+    <h3 className="block mb-2">JSON Query</h3>
+    <Textarea 
+      className="w-full" 
+      rows={10} 
+      value={query}
+      onChange={onQueryChange}
+      placeholder="Enter your query here..."
+    />
+    <div className="mt-2 flex items-center gap-4">
+      <Button onClick={onApplyFilter} disabled={loading}>
+        {loading ? 'Loading...' : 'Apply Filter'}
+      </Button>
+      {filterTime !== null && (
+        <span className="text-sm text-muted-foreground">
+          Filter time: {filterTime.toFixed(2)}ms
+        </span>
+      )}
+    </div>
+  </div>
+))
+
+// Memoized DataTable component
+const DataTable = memo(({ 
+  table, 
+  filteredData 
+}: { 
+  table: ReturnType<typeof useReactTable<DataItem>>
+  filteredData: DataItem[]
+}) => (
+  <div>
+    <h3 className="block mb-2">Query Results ({filteredData.length} items)</h3>
+    <div className="overflow-x-auto">
+      <Table className="w-full">
+        <TableHeader>
+          {table.getHeaderGroups().map(headerGroup => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map(header => (
+                <TableHead key={header.id} className="capitalize">
+                  {flexRender(
+                    header.column.columnDef.header,
+                    header.getContext()
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          ))}
+        </TableHeader>
+        <TableBody>
+          {table.getRowModel().rows.map(row => (
+            <TableRow key={row.id}>
+              {row.getVisibleCells().map(cell => (
+                <TableCell key={cell.id}>
+                  {flexRender(
+                    cell.column.columnDef.cell,
+                    cell.getContext()
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+
+    {/* Pagination Controls */}
+    <div className="flex items-center justify-between mt-4">
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => table.setPageIndex(0)}
+          disabled={!table.getCanPreviousPage()}
+        >
+          {'<<'}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+        >
+          {'<'}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => table.nextPage()}
+          disabled={!table.getCanNextPage()}
+        >
+          {'>'}
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+          disabled={!table.getCanNextPage()}
+        >
+          {'>>'}
+        </Button>
+      </div>
+      <div className="flex items-center gap-2">
+        <span className="flex items-center gap-1">
+          <div>Page</div>
+          <strong>
+            {table.getState().pagination.pageIndex + 1} of{' '}
+            {table.getPageCount()}
+          </strong>
+        </span>
+        <select
+          value={table.getState().pagination.pageSize}
+          onChange={e => {
+            table.setPageSize(Number(e.target.value))
+          }}
+          className="border rounded p-1"
+        >
+          {[10, 20, 30, 40, 50].map(pageSize => (
+            <option key={pageSize} value={pageSize}>
+              Show {pageSize}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  </div>
+))
 
 function App() {
   const [query, setQuery] = useState('')
@@ -164,13 +301,12 @@ function App() {
     loadInitialData()
   }, [])
 
-  // Handle query changes
-  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  // Memoized handlers
+  const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setQuery(e.target.value)
-  }
+  }, [])
 
-  // Apply filter
-  const applyFilter = async () => {
+  const applyFilter = useCallback(async () => {
     try {
       setLoading(true)
       const startTime = performance.now()
@@ -198,32 +334,19 @@ function App() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [query])
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">JSON Query Builder</h1>
       <div className="space-y-4">
-        <div>
-          <h3 className="block mb-2">JSON Query</h3>
-          <Textarea 
-            className="w-full" 
-            rows={10} 
-            value={query}
-            onChange={handleQueryChange}
-            placeholder="Enter your query here..."
-          />
-          <div className="mt-2 flex items-center gap-4">
-            <Button onClick={applyFilter} disabled={loading}>
-              {loading ? 'Loading...' : 'Apply Filter'}
-            </Button>
-            {filterTime !== null && (
-              <span className="text-sm text-muted-foreground">
-                Filter time: {filterTime.toFixed(2)}ms
-              </span>
-            )}
-          </div>
-        </div>
+        <QueryInput
+          query={query}
+          onQueryChange={handleQueryChange}
+          onApplyFilter={applyFilter}
+          loading={loading}
+          filterTime={filterTime}
+        />
 
         {error && (
           <div className="text-red-500">
@@ -231,97 +354,10 @@ function App() {
           </div>
         )}
 
-        <div>
-          <h3 className="block mb-2">Query Results ({filteredData.length} items)</h3>
-          <div className="overflow-x-auto">
-            <Table className="w-full">
-              <TableHeader>
-                {table.getHeaderGroups().map(headerGroup => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map(header => (
-                      <TableHead key={header.id} className="capitalize">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows.map(row => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map(cell => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Pagination Controls */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                onClick={() => table.setPageIndex(0)}
-                disabled={!table.getCanPreviousPage()}
-              >
-                {'<<'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-              >
-                {'<'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-              >
-                {'>'}
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => table.setPageIndex(table.getPageCount() - 1)}
-                disabled={!table.getCanNextPage()}
-              >
-                {'>>'}
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1">
-                <div>Page</div>
-                <strong>
-                  {table.getState().pagination.pageIndex + 1} of{' '}
-                  {table.getPageCount()}
-                </strong>
-              </span>
-              <select
-                value={table.getState().pagination.pageSize}
-                onChange={e => {
-                  table.setPageSize(Number(e.target.value))
-                }}
-                className="border rounded p-1"
-              >
-                {[10, 20, 30, 40, 50].map(pageSize => (
-                  <option key={pageSize} value={pageSize}>
-                    Show {pageSize}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
+        <DataTable
+          table={table}
+          filteredData={filteredData}
+        />
       </div>
     </div>
   )
