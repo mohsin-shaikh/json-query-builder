@@ -87,6 +87,7 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tableColumns, setTableColumns] = useState<string[]>([])
+  const [filterTime, setFilterTime] = useState<number | null>(null)
 
   const columnHelper = createColumnHelper<DataItem>()
 
@@ -132,6 +133,7 @@ function App() {
     const loadInitialData = async () => {
       try {
         setLoading(true)
+        const startTime = performance.now()
         const response = await fetch('http://localhost:3000/api/filter', {
           method: 'POST',
           headers: {
@@ -148,6 +150,8 @@ function App() {
         }
 
         const result = await response.json()
+        const endTime = performance.now()
+        setFilterTime(endTime - startTime)
         setData(result.data)
         setFilteredData(result.data)
       } catch (err) {
@@ -169,6 +173,7 @@ function App() {
   const applyFilter = async () => {
     try {
       setLoading(true)
+      const startTime = performance.now()
       const response = await fetch('http://localhost:3000/api/filter', {
         method: 'POST',
         headers: {
@@ -185,6 +190,8 @@ function App() {
       }
 
       const result = await response.json()
+      const endTime = performance.now()
+      setFilterTime(endTime - startTime)
       setFilteredData(result.data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -206,10 +213,15 @@ function App() {
             onChange={handleQueryChange}
             placeholder="Enter your query here..."
           />
-          <div className="mt-2">
+          <div className="mt-2 flex items-center gap-4">
             <Button onClick={applyFilter} disabled={loading}>
               {loading ? 'Loading...' : 'Apply Filter'}
             </Button>
+            {filterTime !== null && (
+              <span className="text-sm text-muted-foreground">
+                Filter time: {filterTime.toFixed(2)}ms
+              </span>
+            )}
           </div>
         </div>
 
