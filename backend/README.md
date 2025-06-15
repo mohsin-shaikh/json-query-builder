@@ -1,6 +1,69 @@
-# Basic Express.js Backend
+# JSON Query Builder Backend
 
-A simple Express.js backend with basic middleware and error handling.
+This is the backend API for the JSON Query Builder.
+
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+PORT=3000
+NODE_ENV=development
+CORS_ORIGIN=http://localhost:5173
+```
+
+### Available Variables
+
+- `PORT`: The port number to run the server on (default: 3000)
+- `NODE_ENV`: The environment mode (development/production) (default: development)
+- `CORS_ORIGIN`: The allowed origin for CORS (default: http://localhost:5173)
+
+## Development
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start the development server:
+```bash
+npm run dev
+```
+
+The server will be available at http://localhost:3000
+
+## API Endpoints
+
+### Filter Data
+- **POST** `/api/filter`
+  - Request body:
+    ```json
+    {
+      "query": "string",
+      "filePath": "string"
+    }
+    ```
+  - Response:
+    ```json
+    {
+      "success": true,
+      "count": number,
+      "data": array
+    }
+    ```
+
+### Get Field Suggestions
+- **GET** `/api/suggestions`
+  - Query parameters:
+    - `searchTerm`: string
+    - `filePath`: string
+  - Response:
+    ```json
+    {
+      "success": true,
+      "suggestions": string[]
+    }
+    ```
 
 ## Features
 
@@ -16,26 +79,6 @@ A simple Express.js backend with basic middleware and error handling.
 
 - Node.js (v14 or higher)
 - npm or yarn
-
-## Setup
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Create a `.env` file in the root directory with the following content:
-```
-PORT=3000
-NODE_ENV=development
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
-
-The server will start on http://localhost:3000
 
 ## Available Scripts
 

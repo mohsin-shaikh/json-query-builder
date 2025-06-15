@@ -1,71 +1,21 @@
-import { useEffect, useState } from 'react'
-import { QueryInput } from './components/query-builder/QueryInput'
-import { DataTable } from './components/query-builder/DataTable'
+import { useState, useEffect } from 'react'
+import { QueryInput } from '@/components/query-builder/QueryInput'
+import { DataTable } from '@/components/query-builder/DataTable'
+import { API_BASE_URL } from '@/config'
+
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 
 interface DataItem {
-  id: string
-  name: string
-  age: number
-  gender: string
-  email: string
-  phone: string
-  bio: string
-  status: string
-  createdAt: string
-  updatedAt: string
-  address: {
-    street: string
-    city: string
-    state: string
-    country: string
-    zipCode: string
-  }
-  socialProfiles: {
-    twitter: string
-    github: string
-    linkedin: string
-  }
-  tags: string[]
-  metrics: {
-    views: number
-    likes: number
-    shares: number
-    comments: number
-    rating: number
-  }
-  preferences: {
-    theme: string
-    notifications: {
-      email: boolean
-      push: boolean
-      sms: boolean
-    }
-    privacy: {
-      profileVisibility: string
-      showEmail: boolean
-      showPhone: boolean
-    }
-  }
-  subscription: {
-    plan: string
-    startDate: string
-    endDate: string
-    autoRenew: boolean
-  }
-  lastLogin: {
-    timestamp: string
-    ip: string
-    device: string
-    browser: string
-  }
+  [key: string]: JsonValue
 }
 
-function App() {
+export default function App() {
   const [query, setQuery] = useState('')
-  const [filteredData, setFilteredData] = useState<DataItem[]>([])
+  const [results, setResults] = useState<DataItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filterTime, setFilterTime] = useState<number | null>(null)
+  const filePath = '/Users/mohsin/Developer/eappsys/json-query-builder/backend/data/large-dataset.json'
 
   // Load initial data
   useEffect(() => {
@@ -73,25 +23,26 @@ function App() {
       try {
         setLoading(true)
         const startTime = performance.now()
-        const response = await fetch('http://localhost:3000/api/filter', {
+        
+        const response = await fetch(`${API_BASE_URL}/api/filter`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             query: '',
-            filePath: '/Users/mohsin/Developer/eappsys/json-query-builder/backend/data/large-dataset.json'
+            filePath
           })
         })
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch data')
+        const result = await response.json()
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load data')
         }
 
-        const result = await response.json()
         const endTime = performance.now()
         setFilterTime(endTime - startTime)
-        setFilteredData(result.data)
+        setResults(result.data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -108,29 +59,30 @@ function App() {
   }
 
   // Apply filter
-  const applyFilter = async () => {
+  const handleApplyFilter = async () => {
     try {
       setLoading(true)
       const startTime = performance.now()
-      const response = await fetch('http://localhost:3000/api/filter', {
+      
+      const response = await fetch(`${API_BASE_URL}/api/filter`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           query: query.trim(),
-          filePath: '/Users/mohsin/Developer/eappsys/json-query-builder/backend/data/large-dataset.json'
+          filePath
         })
       })
 
-      if (!response.ok) {
-        throw new Error('Failed to apply filter')
+      const result = await response.json()
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to filter data')
       }
 
-      const result = await response.json()
       const endTime = performance.now()
       setFilterTime(endTime - startTime)
-      setFilteredData(result.data)
+      setResults(result.data)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -141,25 +93,26 @@ function App() {
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">JSON Query Builder</h1>
-      <div className="space-y-4">
-        <QueryInput
-          query={query}
-          loading={loading}
-          filterTime={filterTime}
-          onQueryChange={handleQueryChange}
-          onApplyFilter={applyFilter}
-        />
-
-        {error && (
-          <div className="text-red-500">
-            Error: {error}
-          </div>
-        )}
-
-        <DataTable data={filteredData} />
+      <div className="grid grid-cols-1 gap-4">
+        <div>
+          <QueryInput
+            query={query}
+            loading={loading}
+            filterTime={filterTime}
+            onQueryChange={handleQueryChange}
+            onApplyFilter={handleApplyFilter}
+            filePath={filePath}
+          />
+        </div>
+        <div>
+          {error && (
+            <div className="text-red-500">
+              Error: {error}
+            </div>
+          )}
+          <DataTable data={results} />
+        </div>
       </div>
     </div>
   )
 }
-
-export default App

@@ -9,66 +9,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { useMemo } from 'react'
 
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+
 interface DataItem {
-  id: string
-  name: string
-  age: number
-  gender: string
-  email: string
-  phone: string
-  bio: string
-  status: string
-  createdAt: string
-  updatedAt: string
-  address: {
-    street: string
-    city: string
-    state: string
-    country: string
-    zipCode: string
-  }
-  socialProfiles: {
-    twitter: string
-    github: string
-    linkedin: string
-  }
-  tags: string[]
-  metrics: {
-    views: number
-    likes: number
-    shares: number
-    comments: number
-    rating: number
-  }
-  preferences: {
-    theme: string
-    notifications: {
-      email: boolean
-      push: boolean
-      sms: boolean
-    }
-    privacy: {
-      profileVisibility: string
-      showEmail: boolean
-      showPhone: boolean
-    }
-  }
-  subscription: {
-    plan: string
-    startDate: string
-    endDate: string
-    autoRenew: boolean
-  }
-  lastLogin: {
-    timestamp: string
-    ip: string
-    device: string
-    browser: string
-  }
+  [key: string]: JsonValue
 }
 
 // Helper function to format cell value
-const formatCellValue = (value: string | number | boolean | null | undefined | object | unknown[]): string => {
+const formatCellValue = (value: JsonValue): string => {
   if (value === null || value === undefined) return '-'
   if (typeof value === 'object') {
     if (Array.isArray(value)) {
@@ -92,12 +40,12 @@ export function DataTable({ data }: DataTableProps) {
     
     const firstItem = data[0]
     const tableColumns = Object.keys(firstItem).filter(key => 
-      typeof firstItem[key as keyof DataItem] !== 'object' || 
-      Array.isArray(firstItem[key as keyof DataItem])
+      typeof firstItem[key] !== 'object' || 
+      Array.isArray(firstItem[key])
     )
     
     return tableColumns.map(column => 
-      columnHelper.accessor(column as keyof DataItem, {
+      columnHelper.accessor(column, {
         header: () => column.replace(/([A-Z])/g, ' $1').trim(),
         cell: info => formatCellValue(info.getValue()),
       })

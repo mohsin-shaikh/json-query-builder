@@ -2,14 +2,18 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 const filterRoutes = require('./routes/filterRoutes');
+const config = require('./config');
 require('dotenv').config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
 app.use(express.json());
+app.use(cors({
+  origin: config.corsOrigin,
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type']
+}));
 app.use(morgan('dev'));
 
 // Routes
@@ -36,12 +40,12 @@ app.get('/health', (req, res) => {
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({
-    error: 'Something went wrong!',
-    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+    success: false,
+    error: 'Internal Server Error'
   });
 });
 
 // Start server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
+app.listen(config.port, () => {
+  console.log(`Server is running on port ${config.port} in ${config.nodeEnv} mode`);
 }); 
