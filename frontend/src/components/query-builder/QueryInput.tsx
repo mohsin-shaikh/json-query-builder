@@ -91,7 +91,6 @@ export function QueryInput({
             value={query}
             onChange={handleTextAreaChange}
             placeholder="Enter your query here..."
-            onBlur={() => setTimeout(() => setOpen(false), 100)}
             onFocus={() => searchTerm && setOpen(true)}
           />
         </PopoverTrigger>
@@ -103,7 +102,10 @@ export function QueryInput({
                 {suggestions.map((suggestion) => (
                   <CommandItem
                     key={suggestion}
-                    onSelect={() => insertSuggestion(suggestion)}
+                    onMouseDown={e => {
+                      e.preventDefault();
+                      insertSuggestion(suggestion);
+                    }}
                     className="cursor-pointer"
                   >
                     {suggestion}
