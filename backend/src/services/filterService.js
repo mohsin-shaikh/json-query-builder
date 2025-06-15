@@ -186,6 +186,23 @@ class FilterService {
     async filterData(filePath, query) {
         return new Promise((resolve, reject) => {
             const results = [];
+            
+            // If query is empty, return all records
+            if (!query || query.trim() === '') {
+                const stream = fs.createReadStream(filePath, { encoding: 'utf8' })
+                    .pipe(JSONStream.parse('*'))
+                    .on('data', (item) => {
+                        results.push(item);
+                    })
+                    .on('end', () => {
+                        resolve(results);
+                    })
+                    .on('error', (error) => {
+                        reject(error);
+                    });
+                return;
+            }
+
             const conditions = this.parseQuery(query);
             
             const stream = fs.createReadStream(filePath, { encoding: 'utf8' })
