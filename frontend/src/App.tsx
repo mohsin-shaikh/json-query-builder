@@ -80,7 +80,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f8fa]">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-6 border-b bg-white">
+      <header className="container mx-auto flex items-center justify-between py-6">
         <div className="flex items-center gap-3">
           <Search className="w-6 h-6 text-gray-700" />
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">JQL Search</h1>
@@ -97,7 +97,7 @@ export default function App() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-3xl mx-auto py-8 space-y-8">
+      <main className="container mx-auto space-y-8">
         {/* Filter Builder */}
         <section className="bg-white rounded-lg shadow p-6">
           <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
