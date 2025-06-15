@@ -1,118 +1,167 @@
 import { useState, useEffect } from 'react'
-import { QueryInput } from '@/components/query-builder/QueryInput'
-import { DataTable } from '@/components/query-builder/DataTable'
+import { QueryInput } from './components/query-builder/QueryInput'
+import { DataTable } from './components/query-builder/DataTable'
+import { Button } from './components/ui/button'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Search, Clock } from 'lucide-react'
 import { API_BASE_URL } from '@/config'
 
-type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
+const JQL_SYNTAX_EXAMPLES = [
+  'project = "PROJECT-A" - Exact match',
+  'summary ~ "bug" - Contains text',
+  'status in (Open, "In Progress") - Multiple values',
+  'priority = High AND assignee = currentUser() - AND condition',
+  '(status = Open OR status = "In Progress") AND priority = High - Grouping',
+]
 
-interface DataItem {
-  [key: string]: JsonValue
-}
+type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+type DataItem = { [key: string]: JsonValue };
 
 export default function App() {
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<DataItem[]>([])
+  const [data, setData] = useState<DataItem[]>([])
+  const [initialData, setInitialData] = useState<DataItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [filterTime, setFilterTime] = useState<number | null>(null)
+  const [tab, setTab] = useState<'jql' | 'visual'>('jql')
   const filePath = '/Users/mohsin/Developer/eappsys/json-query-builder/backend/data/large-dataset.json'
+  const [filterApplied, setFilterApplied] = useState(false)
 
-  // Load initial data
-  useEffect(() => {
-    const loadInitialData = async () => {
-      try {
-        setLoading(true)
-        const startTime = performance.now()
-        
-        const response = await fetch(`${API_BASE_URL}/api/filter`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            query: '',
-            filePath
-          })
-        })
-
-        const result = await response.json()
-        if (!result.success) {
-          throw new Error(result.error || 'Failed to load data')
-        }
-
-        const endTime = performance.now()
-        setFilterTime(endTime - startTime)
-        setResults(result.data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'An error occurred')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadInitialData()
-  }, [])
-
-  // Handle query changes
-  const handleQueryChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setQuery(e.target.value)
-  }
-
-  // Apply filter
-  const handleApplyFilter = async () => {
+  const onApplyFilter = async () => {
+    setLoading(true)
+    setError(null)
+    setFilterApplied(true)
+    const start = performance.now()
     try {
-      setLoading(true)
-      const startTime = performance.now()
-      
       const response = await fetch(`${API_BASE_URL}/api/filter`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: query.trim(),
-          filePath
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: query.trim(), filePath })
       })
-
       const result = await response.json()
       if (!result.success) {
         throw new Error(result.error || 'Failed to filter data')
       }
-
-      const endTime = performance.now()
-      setFilterTime(endTime - startTime)
-      setResults(result.data)
+      setData(result.data)
+      setFilterTime(performance.now() - start)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
+      setError(err instanceof Error ? err.message : 'Failed to filter data')
     } finally {
       setLoading(false)
     }
   }
 
+  // Load initial data on mount
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/filter`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '', filePath })
+        })
+        const result = await response.json()
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to load initial data')
+        }
+        setInitialData(result.data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load initial data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchInitialData()
+  }, [])
+
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">JSON Query Builder</h1>
-      <div className="grid grid-cols-1 gap-4">
-        <div>
-          <QueryInput
-            query={query}
-            loading={loading}
-            filterTime={filterTime}
-            onQueryChange={handleQueryChange}
-            onApplyFilter={handleApplyFilter}
-            filePath={filePath}
-          />
+    <div className="min-h-screen bg-[#f7f8fa]">
+      {/* Header */}
+      <header className="flex items-center justify-between px-8 py-6 border-b bg-white">
+        <div className="flex items-center gap-3">
+          <Search className="w-6 h-6 text-gray-700" />
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">JQL Search</h1>
         </div>
-        <div>
-          {error && (
-            <div className="text-red-500">
-              Error: {error}
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2">
+            <span>Save Filter</span>
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Clock className="w-4 h-4" />
+            <span>History</span>
+          </Button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto py-8 space-y-8">
+        {/* Filter Builder */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+            <span>&lt;&gt;</span> Filter Builder
+          </h2>
+          <Tabs value={tab} onValueChange={(v: string) => setTab(v as 'jql' | 'visual')}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="visual">Visual</TabsTrigger>
+              <TabsTrigger value="jql">JQL</TabsTrigger>
+            </TabsList>
+            <TabsContent value="jql">
+              <div className="mb-4">
+                <QueryInput
+                  query={query}
+                  loading={loading}
+                  filterTime={filterTime}
+                  onQueryChange={e => setQuery(e.target.value)}
+                  onApplyFilter={onApplyFilter}
+                  filePath={filePath}
+                />
+              </div>
+              <div className="bg-blue-50 rounded p-4 text-sm text-gray-700">
+                <div className="font-semibold mb-2">JQL Syntax Examples:</div>
+                <ul className="list-disc pl-5 space-y-1">
+                  {JQL_SYNTAX_EXAMPLES.map((ex) => (
+                    <li key={ex}>{ex}</li>
+                  ))}
+                </ul>
+              </div>
+            </TabsContent>
+            <TabsContent value="visual">
+              <div className="flex flex-col items-center justify-center min-h-[180px]">
+                <svg width="48" height="48" fill="none" viewBox="0 0 24 24" stroke="#cbd5e1" strokeWidth="1.5" aria-label="No filters applied icon"><title>No filters applied</title><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 104.5 4.5a7.5 7.5 0 0012.15 12.15z" /></svg>
+                <div className="text-gray-500 mt-2 mb-1 text-lg">No filters applied</div>
+                <div className="text-gray-400 mb-4">Start building your search query</div>
+                <Button variant="default">+ Add First Condition</Button>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </section>
+
+        {/* Search Results */}
+        <section className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-lg font-semibold mb-4">Search Results</h2>
+          {/* Show error or results */}
+          {error && <div className="text-red-500 mb-2">{error}</div>}
+          {filterApplied ? (
+            data.length > 0 ? (
+              <DataTable data={data} />
+            ) : (
+              <div className="text-gray-400 text-center py-8">
+                No results found for your query.
+              </div>
+            )
+          ) : initialData.length > 0 ? (
+            <DataTable data={initialData} />
+          ) : (
+            <div className="text-gray-400 text-center py-8">
+              Results would appear here based on your JQL query<br />
+              <span className="text-xs">Connect to your data source to see actual results</span>
             </div>
           )}
-          <DataTable data={results} />
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   )
 }
